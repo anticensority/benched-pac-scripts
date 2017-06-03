@@ -1,3 +1,7 @@
+# Custom
+dump.csv
+*.swp
+
 # Logs
 logs
 *.log
