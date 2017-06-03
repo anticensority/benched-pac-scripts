@@ -1,0 +1,5 @@
+./node bench.js ./pac/antizapret.pac ./pac/anticensority.pac ./pac/old-switched-anticensority.pac 
+./pac/antizapret.pac x 1,479 ops/sec ±29.39% (876 runs sampled)
+./pac/anticensority.pac x 1,054 ops/sec ±15.19% (877 runs sampled)
+./pac/old-switched-anticensority.pac x 493 ops/sec ±55.16% (876 runs sampled)
+Fastest is ./pac/antizapret.pac
