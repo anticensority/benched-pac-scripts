@@ -10,25 +10,32 @@ if (!args.length) {
 
 const pacEnv = Fs.readFileSync('./env.js');
 
-const executePac = function createPac(pacStr) {
+const makePac = function createPac(pacStr) {
 
-  (new Function (
+  return (new Function (
     'url', 'host',
     pacEnv + ';' + pacStr + '; FindProxyForURL(url, host);')
-  )('http://mmmmzzztorrent.net', 'mmmmzzztorrent.net');
+  );
 
 }
 
 const suite = new Benchmark.Suite;
 const opts = {
   async: false,
-  minSamples: 200
+  minSamples: 200,
 };
 
 args.map((path) => [path, Fs.readFileSync(path).toString()]).forEach(([path, content]) => {
+
+  const pacScript = makePac(content);
+
+  const host = 'm.mmmmmabc.ru';
+  const url = `http://${host}`;
+
   suite.add(path, function() {
-    executePac(content);
-  }, opts)
+    pacScript(host, url);
+  }, opts);
+
 });
 
 suite.on('cycle', function(event) {
