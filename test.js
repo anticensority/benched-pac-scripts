@@ -6,6 +6,7 @@ const Benchmark = require('benchmark');
 const args = process.argv.slice(2);
 if (args.length !== 1) {
   console.error('ARGS: ./buggy.pac');
+  process.exit(1);
 }
 const pacPath = args.pop();
 
@@ -22,8 +23,8 @@ const executePac = function executePac(pacStr, host) {
 
 const pacStr = Fs.readFileSync(pacPath).toString();
 [
-  'navalny.com',
-  'yandex.ru'
+  'kasparov.ru',
+  'www.kasparov.ru',
 ].forEach((host) => {
 
   const result = executePac(pacStr, host);
