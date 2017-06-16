@@ -42,7 +42,7 @@ soupcdn.com
 
 }
 
-function generatePacFromString(dumpCsv, typeToProxyString, beforeRequiredExpr, requiredFunctions, generateIfByHost, generateIfByIp) {
+function generatePacFromString(dumpCsv, typeToProxyString, mutateHostExpr, requiredFunctions, generateUncensorByHostExpr, generateUncensorByIpExpr) {
 
   Logger.log('Generate pac from script...');
 
@@ -143,10 +143,7 @@ function generatePacFromString(dumpCsv, typeToProxyString, beforeRequiredExpr, r
 
   function FindProxyForURL(url, host) {
     /*
-        Version: 0.1
-        The whole PAC script is reevaluated on each call of this function.
-        CONF may be changed by client.
-        CONF version defines what props it may have, it is meant to match the version of the extension.
+        Version: 0.2
         __SUCH_NAMES__ are template placeholders that MUST be replaced for the script to work.
     */
 
@@ -155,9 +152,10 @@ function generatePacFromString(dumpCsv, typeToProxyString, beforeRequiredExpr, r
     }
 
     host = host.replace(/\.+$/, '').toLowerCase(); // E.g. WinHTTP may be nasty.
+    __MUTATE_HOST_EXPR__;
 
     function IF_INCLUDED_IN_PROXYING() {
-      return ['pornreactor.cc', 'joyreactor.cc'].includes(host);
+      return [].includes(host);
     }
 
     function IF_EXCLUDED_FROM_PROXYING() {
@@ -168,21 +166,23 @@ function generatePacFromString(dumpCsv, typeToProxyString, beforeRequiredExpr, r
     var PROXY_PROXIES = '__PROXY_PROXIES__'; //'PROXY proxy.antizapret.prostovpn.org:3128; PROXY gw2.anticenz.org:8080;';
     var PROXY_STRING  = HTTPS_PROXIES + PROXY_PROXIES + 'DIRECT';
 
-    return (!IF_EXCLUDED_FROM_PROXYING() && (__IF_UNCENSOR_BY_IP__() || __IF_UNCENSOR_BY_HOST__() || IF_INCLUDED_IN_PROXYING()) )? PROXY_STRING : 'DIRECT';
+    return (function ifProxy(){
+
+      if (IF_EXCLUDED_FROM_PROXYING()) {
+        return false;
+      }
+      // Some providers block by DNS, so host check comes before ip check.
+      const reversedHost = host.split('').reverse().join('');
+      if (__IF_CENSORED_BY_HOST_EXPR__ || IF_INCLUDED_IN_PROXYING()) {
+        return true;
+      }
+
+      const ip = dnsResolve(host);
+      return ip && (__IF_CENSORED_BY_MASKED_IP_EXPR__ || __IF_CENSORED_BY_IP_EXPR__);
+
+    })() ? PROXY_STRING : 'DIRECT';
 
   };
-
-  beforeRequiredExpr = beforeRequiredExpr || '';
-  requiredFunctions = requiredFunctions || [];
-
-  var pacTemplate = '// From repo: ' + remoteUpdated.toLowerCase() + '\n' +
-    '"use strict";\n' +
-    beforeRequiredExpr + ';\n' +
-    requiredFunctions.join(';\n') + '\n' +
-    FindProxyForURL.toString()
-    .replace('__IS_IE__()', '/*@cc_on!@*/!1')
-    .replace('__HTTPS_PROXIES__', typeToProxyString.HTTPS || ';' )
-    .replace('__PROXY_PROXIES__', typeToProxyString.PROXY || ';' );
 
   function stringifyCall() {
     var fun = arguments[0];
@@ -191,13 +191,22 @@ function generatePacFromString(dumpCsv, typeToProxyString, beforeRequiredExpr, r
     return '(' + fun + ')(' + args + ')';
   }
 
-  const indent = '  ';
+  mutateHostExpr = mutateHostExpr || '';
+  requiredFunctions = requiredFunctions || [];
+
+  var pacTemplate = '// From repo: ' + remoteUpdated.toLowerCase() + '\n' +
+    '"use strict";\n' +
+    requiredFunctions.join(';\n') + '\n' +
+    FindProxyForURL.toString()
+    .replace('__MUTATE_HOST_EXPR__', mutateHostExpr)
+    .replace('__IS_IE__()', '/*@cc_on!@*/!1')
+    .replace('__HTTPS_PROXIES__', typeToProxyString.HTTPS || ';' )
+    .replace('__PROXY_PROXIES__', typeToProxyString.PROXY || ';' );
+
   return pacTemplate
-    .replace(
-      '__IF_UNCENSOR_BY_IP__()', stringifyCall(generateIfByIp(ips, indent))
-    ).replace(
-      '__IF_UNCENSOR_BY_HOST__()', stringifyCall(generateIfByHost(hosts, indent))
-    );
+    .replace('__IF_CENSORED_BY_IP_EXPR__', generateUncensorByIpExpr(ips) )
+    .replace('__IF_CENSORED_BY_MASKED_IP_EXPR__', 'false') // stringifyCall(ifCensoredByMaskedIp, ipToMaskInt))
+    .replace('__IF_CENSORED_BY_HOST_EXPR__', generateUncensorByHostExpr(hosts) );
 
 };
 
@@ -207,10 +216,10 @@ module.exports = (generate) => {
   return generatePacFromString(
     dumpCsv,
     { HTTPS: 'HTTPS your_proxy.here:8080;' },
-    generate.beforeRequiredExpr,
+    generate.mutateHostExpr,
     generate.requiredFunctions,
-    generate.ifByHostAsString,
-    generate.ifByIpAsString
+    generate.generateUncensorByHostExpr,
+    generate.generateUncensorByIpExpr
   );
 
 };
