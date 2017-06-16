@@ -42,7 +42,7 @@ soupcdn.com
 
 }
 
-function generatePacFromString(dumpCsv, typeToProxyString, mutateHostExpr, requiredFunctions, generateUncensorByHostExpr, generateUncensorByIpExpr) {
+function generatePacFromString(dumpCsv, typeToProxyString, mutateHostExpr, requiredFunctions, generateIfUncensorByHostExpr, generateIfUncensorByIpExpr) {
 
   Logger.log('Generate pac from script...');
 
@@ -69,6 +69,13 @@ function generatePacFromString(dumpCsv, typeToProxyString, mutateHostExpr, requi
   const remoteUpdated = lines[0].trim();
   Logger.log('For each line..');
   const ipv4v6Re = /^(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}|(?:[0-9a-f]{0,4}:){2,7}[0-9a-f]{0,4})$/i;
+
+  var ignoredHosts = [];
+  var ihRes = fetchIgnoredHosts();
+  if (ihRes.content) {
+    ignoredHosts = ihRes.content;
+  }
+  Logger.log('Ignored hosts initiated.');
 
 
   for( var ii = 1; ii < lines.length; ++ii ) {
@@ -108,24 +115,29 @@ function generatePacFromString(dumpCsv, typeToProxyString, mutateHostExpr, requi
       }
       if (ipv4v6Re.test(host)) {
         ips[host] = true;
+        return;
       }
-      else {
-        hosts[host] = true;
+      if (ignoredHosts.some((ih) => host.endsWith(ih))) {
+        return;
       }
+
+      var newHost;
+      if (/\.(ru|co|cu|com|info|net|org|gov|edu|int|mil|biz|pp|ne|msk|spb|nnov|od|in|ho|cc|dn|i|tut|v|dp|sl|ddns|livejournal|herokuapp|azurewebsites)\.[^.]+$/.test(host)) {
+        newHost = host.replace(/(.+)\.([^.]+\.[^.]+\.[^.]+$)/, '$2');
+      } else {
+        newHost = host.replace(/(.+)\.([^.]+\.[^.]+$)/, '$2');
+      }
+      if (newHost !== host) {
+        //Logger.log(host + ' > ' + newHost);
+        host = newHost;
+      }
+
+      hosts[host] = true;
 
     });
 
   };
   Logger.log('Done.');
-
-  var res = fetchIgnoredHosts();
-  if (res.content) {
-    for(var i in res.content) {
-      var host = res.content[i];
-      delete hosts[host];
-    }
-  }
-  Logger.log('Hosts ignored.');
 
   ips   = Object.keys(ips).sort();
   hosts = Object.keys(hosts).sort( function(a, b) { return a.split('').reverse() < b.split('').reverse() ? -1 : a !== b ? 1 : 0 } );
@@ -171,14 +183,15 @@ function generatePacFromString(dumpCsv, typeToProxyString, mutateHostExpr, requi
       if (IF_EXCLUDED_FROM_PROXYING()) {
         return false;
       }
-      // Some providers block by DNS, so host check comes before ip check.
-      const reversedHost = host.split('').reverse().join('');
-      if (__IF_CENSORED_BY_HOST_EXPR__ || IF_INCLUDED_IN_PROXYING()) {
-        return true;
-      }
 
+      // In the worst case both IP and host checks must be done (two misses).
+      // IP hits are more probeble, so we check them first.
       const ip = dnsResolve(host);
-      return ip && (__IF_CENSORED_BY_MASKED_IP_EXPR__ || __IF_CENSORED_BY_IP_EXPR__);
+      if (ip && (__IF_CENSORED_BY_MASKED_IP_EXPR__ || __IF_CENSORED_BY_IP_EXPR__)) {
+        return true;
+      };
+
+      return (__IF_CENSORED_BY_HOST_EXPR__ || IF_INCLUDED_IN_PROXYING());
 
     })() ? PROXY_STRING : 'DIRECT';
 
@@ -204,22 +217,22 @@ function generatePacFromString(dumpCsv, typeToProxyString, mutateHostExpr, requi
     .replace('__PROXY_PROXIES__', typeToProxyString.PROXY || ';' );
 
   return pacTemplate
-    .replace('__IF_CENSORED_BY_IP_EXPR__', generateUncensorByIpExpr(ips) )
+    .replace('__IF_CENSORED_BY_IP_EXPR__', generateIfUncensorByIpExpr(ips) )
     .replace('__IF_CENSORED_BY_MASKED_IP_EXPR__', 'false') // stringifyCall(ifCensoredByMaskedIp, ipToMaskInt))
-    .replace('__IF_CENSORED_BY_HOST_EXPR__', generateUncensorByHostExpr(hosts) );
+    .replace('__IF_CENSORED_BY_HOST_EXPR__', generateIfUncensorByHostExpr(hosts) );
 
 };
 
-module.exports = (generate) => {
+module.exports = (generator) => {
 
   const dumpCsv = Fs.readFileSync('./dump.csv').toString();
   return generatePacFromString(
     dumpCsv,
     { HTTPS: 'HTTPS your_proxy.here:8080;' },
-    generate.mutateHostExpr,
-    generate.requiredFunctions,
-    generate.generateUncensorByHostExpr,
-    generate.generateUncensorByIpExpr
+    generator.mutateHostExpr,
+    generator.requiredFunctions,
+    generator.generate.ifUncensorByHostExpr,
+    generator.generate.ifUncensorByIpExpr
   );
 
 };
@@ -232,7 +245,7 @@ if (require.main === module) {
     console.error('ARGS: ./generator-implementation.js');
     process.exit(1);
   }
-  const generate = require(gen).generate;
-  const pac = module.exports(generate);
+  const generator = require(gen);
+  const pac = module.exports(generator);
   console.log(pac);
 }

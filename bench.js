@@ -29,7 +29,9 @@ args.map((path) => [path, Fs.readFileSync(path).toString()]).forEach(([path, con
 
   const pacScript = makePac(content);
 
-  const host = 'm.mmmmmabc.ru';
+  const host = 'example.com';
+  // const host = 'm.mmmmmabc.ru';
+  // const host = 'm.ru.leonnavi.com';
   const url = `http://${host}`;
 
   suite.add(path, function() {

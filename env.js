@@ -216,6 +216,7 @@ function isResolvableEx(host) {
 
 // SPECIALLY FOR TESTING PAC-SCRIPTS
 function dnsResolve() {
-  return '216.92.111.41'; // Kasparov.ru
+  //return '216.92.111.41'; // Kasparov.ru
+  return '116.82.111.41'; // not blocked ip
   //return null;
 }

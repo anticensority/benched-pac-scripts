@@ -25,6 +25,9 @@ const pacStr = Fs.readFileSync(pacPath).toString();
 [
   'kasparov.ru',
   'www.kasparov.ru',
+  'ru.leonnavi.com',
+  'ab.leonnavi.com',
+  'example.com',
 ].forEach((host) => {
 
   const result = executePac(pacStr, host);

@@ -1,0 +1,5 @@
+./node bench.js ./new-pacs/a2eee.pac ./new-pacs/a2eee2.pac ./new-pacs/a2eee3.pac
+./new-pacs/a2eee.pac x 144,327 ops/sec ±0.92% (278 runs sampled)
+./new-pacs/a2eee2.pac x 154,279 ops/sec ±0.88% (278 runs sampled)
+./new-pacs/a2eee3.pac x 151,737 ops/sec ±0.90% (278 runs sampled)
+
