@@ -42,7 +42,7 @@ soupcdn.com
 
 }
 
-function generatePacFromString(dumpCsv, typeToProxyString, generateIfByHost, generateIfByIp) {
+function generatePacFromString(dumpCsv, typeToProxyString, requiredFunctions, generateIfByHost, generateIfByIp) {
 
   Logger.log('Generate pac from script...');
 
@@ -172,8 +172,11 @@ function generatePacFromString(dumpCsv, typeToProxyString, generateIfByHost, gen
 
   };
 
+  requiredFunctions = requiredFunctions || [];
+
   var pacTemplate = '// From repo: ' + remoteUpdated.toLowerCase() + '\n' +
     '"use strict";\n' +
+    requiredFunctions.join(';\n') + '\n' +
     FindProxyForURL.toString()
     .replace('__IS_IE__()', '/*@cc_on!@*/!1')
     .replace('__HTTPS_PROXIES__', typeToProxyString.HTTPS || ';' )
@@ -199,7 +202,13 @@ function generatePacFromString(dumpCsv, typeToProxyString, generateIfByHost, gen
 module.exports = (generate) => {
 
   const dumpCsv = Fs.readFileSync('./dump.csv').toString();
-  return generatePacFromString(dumpCsv, { HTTPS: 'HTTPS your_proxy.here:8080;' }, generate.ifByHostAsString, generate.ifByIpAsString);
+  return generatePacFromString(
+    dumpCsv,
+    { HTTPS: 'HTTPS your_proxy.here:8080;' },
+    generate.requiredFunctions,
+    generate.ifByHostAsString,
+    generate.ifByIpAsString
+  );
 
 };
 
