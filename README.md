@@ -1,17 +1,21 @@
-# Algorithms
+# Generate PAC Script
 
-## Hitman
+node pac-generator cut|nocut ./new-gen/global-in.js > ./new-pac/global-in.pac
 
-### Step 1
+# Test PAC Script
 
-Hitman: use first letter as index.
-Hitman2: use (first letter)*37 + (last letter) as index.
+node test.js ./new-pac/global-in.pac
 
-### Step 2
+# Bench PAC Script
 
-Use binary search.
+I think it's better to launch tests one by one (not in butch).
+
+./node bench.js ./new-pac/global-in.pac
+
+If you think it runs too many cycles -- edit bench.js.
 
 # Statistics
+
 See stats.txt and stats2.txt.
 
 ## Number of Hosts Per First Letter

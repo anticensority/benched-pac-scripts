@@ -1,8 +1,8 @@
 'use strict';
 
-module.exports = function hash37(word) {
+module.exports = function hash37(host) {
 
-  const code = word.charCodeAt(0);
+  const code = host.split('.').slice(-2)[0].charCodeAt(0);
   let i;
   if (code < 97/* a */) {
     i = code - 48/* 0 */;

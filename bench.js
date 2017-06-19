@@ -21,7 +21,7 @@ const makePac = function createPac(pacStr) {
 const suite = new Benchmark.Suite;
 const opts = {
   async: false,
-  minSamples: 200,
+  minSamples: 400,
 };
 
 args.map((path) => [path, Fs.readFileSync(path).toString()]).forEach(([path, content]) => {

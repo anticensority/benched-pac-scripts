@@ -36,13 +36,14 @@ storage.mds.yandex.net
 akamaiedge.net
 akamai.net
 soupcdn.com
+anticensority.pac
 `;
 
   return { content: data.trim().split(/\s*\r?\n\s*/g), ifOk: true };
 
 }
 
-function generatePacFromString(dumpCsv, typeToProxyString, mutateHostExpr, requiredFunctions, generateIfUncensorByHostExpr, generateIfUncensorByIpExpr) {
+function generatePacFromString(dumpCsv, ifToCut, typeToProxyString, requiredFunctions, generateDataExpr, mutateHostExpr, generateIsCensoredByHostExpr, generateIsCensoredByIpExpr) {
 
   Logger.log('Generate pac from script...');
 
@@ -77,6 +78,14 @@ function generatePacFromString(dumpCsv, typeToProxyString, mutateHostExpr, requi
   }
   Logger.log('Ignored hosts initiated.');
 
+  const cut = function cut(host) {
+
+    if (/\.(ru|co|cu|com|info|net|org|gov|edu|int|mil|biz|pp|ne|msk|spb|nnov|od|in|ho|cc|dn|i|tut|v|dp|sl|ddns|livejournal|herokuapp|azurewebsites)\.[^.]+$/.test(host)) {
+      return host.replace(/(.+)\.([^.]+\.[^.]+\.[^.]+$)/, '$2');
+    }
+    return host.replace(/(.+)\.([^.]+\.[^.]+$)/, '$2');
+
+  };
 
   for( var ii = 1; ii < lines.length; ++ii ) {
 
@@ -121,17 +130,9 @@ function generatePacFromString(dumpCsv, typeToProxyString, mutateHostExpr, requi
         return;
       }
 
-      /*var newHost;
-      if (/\.(ru|co|cu|com|info|net|org|gov|edu|int|mil|biz|pp|ne|msk|spb|nnov|od|in|ho|cc|dn|i|tut|v|dp|sl|ddns|livejournal|herokuapp|azurewebsites)\.[^.]+$/.test(host)) {
-        newHost = host.replace(/(.+)\.([^.]+\.[^.]+\.[^.]+$)/, '$2');
-      } else {
-        newHost = host.replace(/(.+)\.([^.]+\.[^.]+$)/, '$2');
+      if (ifToCut) {
+        host = cut(host);
       }
-      if (newHost !== host) {
-        //Logger.log(host + ' > ' + newHost);
-        host = newHost;
-      }
-      */
 
       hosts[host] = true;
 
@@ -144,7 +145,7 @@ function generatePacFromString(dumpCsv, typeToProxyString, mutateHostExpr, requi
   //hosts = Object.keys(hosts).sort( function(a, b) { return a.split('').reverse() < b.split('').reverse() ? -1 : a !== b ? 1 : 0 } );
   hosts = Object.keys(hosts).sort();
 
-  function ifCensoredByMaskedIp(ip, ipToMaskStr) {
+  function isCensoredByMaskedIp(ip, ipToMaskStr) {
 
     for(blockedIp in ipToMaskStr) {
       if (isInNet(ip, blockedIp, ipToMaskStr[blockedIp])) {
@@ -155,47 +156,47 @@ function generatePacFromString(dumpCsv, typeToProxyString, mutateHostExpr, requi
 
   }
 
-  function FindProxyForURL(url, host) {
+  var iife = function() {
+
     /*
         Version: 0.2
         __SUCH_NAMES__ are template placeholders that MUST be replaced for the script to work.
     */
 
-    if (__IS_IE__()) {
-      throw new TypeError('https://rebrand.ly/ac-anticensority');
-    }
-
-    host = host.replace(/\.+$/, '').toLowerCase(); // E.g. WinHTTP may be nasty.
-    __MUTATE_HOST_EXPR__;
-
-    function IF_INCLUDED_IN_PROXYING() {
-      return [].includes(host);
-    }
-
-    function IF_EXCLUDED_FROM_PROXYING() {
-      return ['anticensorship-russia.tk'].includes(host);
-    }
-
     var HTTPS_PROXIES = '__HTTPS_PROXIES__'; //'HTTPS proxy.antizapret.prostovpn.org:3143; HTTPS gw2.anticenz.org:443';
     var PROXY_PROXIES = '__PROXY_PROXIES__'; //'PROXY proxy.antizapret.prostovpn.org:3128; PROXY gw2.anticenz.org:8080;';
     var PROXY_STRING  = HTTPS_PROXIES + PROXY_PROXIES + 'DIRECT';
 
-    return (function ifProxy(){
+    __DATA_EXPR__
 
-      if (IF_EXCLUDED_FROM_PROXYING()) {
-        return false;
+    __REQ_FUNS__
+
+    return function FindProxyForURL(url, host) {
+
+      if (__IS_IE__()) {
+        throw new TypeError('https://rebrand.ly/ac-anticensority');
       }
 
-      // In the worst case both IP and host checks must be done (two misses).
-      // IP hits are more probeble, so we check them first.
-      const ip = dnsResolve(host);
-      if (ip && (__IF_CENSORED_BY_MASKED_IP_EXPR__ || __IF_CENSORED_BY_IP_EXPR__)) {
-        return true;
-      };
+      // Remove last dot.
+      if (host[host.length - 1] === '.') {
+        host = host.substring(0, host.length - 1);
+      }
+      __MUTATE_HOST_EXPR__
 
-      return (__IF_CENSORED_BY_HOST_EXPR__ || IF_INCLUDED_IN_PROXYING());
+      return (function isCensored(){
 
-    })() ? PROXY_STRING : 'DIRECT';
+        // In the worst case both IP and host checks must be done (two misses).
+        // IP hits are more probeble, so we check them first.
+        const ip = dnsResolve(host);
+        if (ip && (__IS_CENSORED_BY_MASKED_IP_EXPR__ || __IS_CENSORED_BY_IP_EXPR__)) {
+          return true;
+        };
+
+        return __IS_CENSORED_BY_HOST_EXPR__;
+
+      })() ? PROXY_STRING : 'DIRECT';
+
+    }
 
   };
 
@@ -209,45 +210,65 @@ function generatePacFromString(dumpCsv, typeToProxyString, mutateHostExpr, requi
   mutateHostExpr = mutateHostExpr || '';
   requiredFunctions = requiredFunctions || [];
 
-  var pacTemplate = '// From repo: ' + remoteUpdated.toLowerCase() + '\n' +
+  var dataExpr = generateDataExpr ? generateDataExpr(hosts, ips) : '';
+
+  var pacTemplate = (
+    '// From repo: ' + remoteUpdated.toLowerCase() + '\n' +
     '"use strict";\n' +
-    requiredFunctions.join(';\n') + '\n' +
-    FindProxyForURL.toString()
-    .replace('__MUTATE_HOST_EXPR__', mutateHostExpr)
+    '\nvar FindProxyForURL = (' + iife.toString() + ')()'
+  )
+    .replace('__DATA_EXPR__', dataExpr)
+    .replace('__REQ_FUNS__', requiredFunctions.join(';\n'))
+    .replace('__MUTATE_HOST_EXPR__', `${ifToCut ? `host = ${cut.toString()}(host);` : '' }${mutateHostExpr}`)
     .replace('__IS_IE__()', '/*@cc_on!@*/!1')
     .replace('__HTTPS_PROXIES__', typeToProxyString.HTTPS || ';' )
     .replace('__PROXY_PROXIES__', typeToProxyString.PROXY || ';' );
 
   return pacTemplate
-    .replace('__IF_CENSORED_BY_IP_EXPR__', generateIfUncensorByIpExpr(ips) )
-    .replace('__IF_CENSORED_BY_MASKED_IP_EXPR__', 'false') // stringifyCall(ifCensoredByMaskedIp, ipToMaskInt))
-    .replace('__IF_CENSORED_BY_HOST_EXPR__', generateIfUncensorByHostExpr(hosts) );
+    .replace('__IS_CENSORED_BY_IP_EXPR__', generateIsCensoredByIpExpr(ips) )
+    .replace('__IS_CENSORED_BY_MASKED_IP_EXPR__', 'false') // stringifyCall(isCensoredByMaskedIp, ipToMaskInt))
+    .replace('__IS_CENSORED_BY_HOST_EXPR__', generateIsCensoredByHostExpr(hosts) );
 
 };
 
-module.exports = (generator) => {
+module.exports = (generator, ifToCut) => {
 
   const dumpCsv = Fs.readFileSync('./dump.csv').toString();
   return generatePacFromString(
     dumpCsv,
+    ifToCut,
     { HTTPS: 'HTTPS your_proxy.here:8080;' },
-    generator.mutateHostExpr,
     generator.requiredFunctions,
-    generator.generate.ifUncensorByHostExpr,
-    generator.generate.ifUncensorByIpExpr
+    generator.generate.dataExpr,
+    generator.mutateHostExpr,
+    generator.generate.isCensoredByHostExpr,
+    generator.generate.isCensoredByIpExpr
   );
+
+};
+
+const showHelp = () => {
+
+  console.error('ARGS: cut|nocut ./generator-implementation.js');
+  process.exit(1);
 
 };
 
 if (require.main === module) {
   // Not imported, but executed!
   const args = process.argv.slice(2);
+
+  const fst = args.shift();
+  if( !['cut', 'nocut'].includes(fst) ) {
+    showHelp();
+  }
+  const ifToCut = fst  === 'cut';
+
   const gen = args.shift();
   if (!gen) {
-    console.error('ARGS: ./generator-implementation.js');
-    process.exit(1);
+    showHelp();
   }
   const generator = require(gen);
-  const pac = module.exports(generator);
+  const pac = module.exports(generator, ifToCut);
   console.log(pac);
 }
