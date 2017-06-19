@@ -1,16 +1,16 @@
 # Generate PAC Script
 
-node pac-generator cut|nocut ./new-gen/global-in.js > ./new-pac/global-in.pac
+`node pac-generator cut|nocut ./new-gen/global-in.js > ./new-pac/global-in.pac`
 
 # Test PAC Script
 
-node test.js ./new-pac/global-in.pac
+`node test.js ./new-pac/global-in.pac`
 
 # Bench PAC Script
 
 I think it's better to launch tests one by one (not in butch).
 
-./node bench.js ./new-pac/global-in.pac
+`./node bench.js ./new-pac/global-in.pac`
 
 If you think it runs too many cycles -- edit bench.js.
 
