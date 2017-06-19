@@ -121,7 +121,7 @@ function generatePacFromString(dumpCsv, typeToProxyString, mutateHostExpr, requi
         return;
       }
 
-      var newHost;
+      /*var newHost;
       if (/\.(ru|co|cu|com|info|net|org|gov|edu|int|mil|biz|pp|ne|msk|spb|nnov|od|in|ho|cc|dn|i|tut|v|dp|sl|ddns|livejournal|herokuapp|azurewebsites)\.[^.]+$/.test(host)) {
         newHost = host.replace(/(.+)\.([^.]+\.[^.]+\.[^.]+$)/, '$2');
       } else {
@@ -131,6 +131,7 @@ function generatePacFromString(dumpCsv, typeToProxyString, mutateHostExpr, requi
         //Logger.log(host + ' > ' + newHost);
         host = newHost;
       }
+      */
 
       hosts[host] = true;
 
@@ -140,7 +141,8 @@ function generatePacFromString(dumpCsv, typeToProxyString, mutateHostExpr, requi
   Logger.log('Done.');
 
   ips   = Object.keys(ips).sort();
-  hosts = Object.keys(hosts).sort( function(a, b) { return a.split('').reverse() < b.split('').reverse() ? -1 : a !== b ? 1 : 0 } );
+  //hosts = Object.keys(hosts).sort( function(a, b) { return a.split('').reverse() < b.split('').reverse() ? -1 : a !== b ? 1 : 0 } );
+  hosts = Object.keys(hosts).sort();
 
   function ifCensoredByMaskedIp(ip, ipToMaskStr) {
 

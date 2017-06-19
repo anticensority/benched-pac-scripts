@@ -13,9 +13,8 @@ const pacEnv = Fs.readFileSync('./env.js');
 const makePac = function createPac(pacStr) {
 
   return (new Function (
-    'url', 'host',
-    pacEnv + ';' + pacStr + '; FindProxyForURL(url, host);')
-  );
+    pacEnv + ';' + pacStr + '; return FindProxyForURL;')
+  )();
 
 }
 
