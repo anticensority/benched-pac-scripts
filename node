@@ -1,2 +1,2 @@
 #!/bin/bash
-node --noopt --no-always-opt $@
+node --noopt --no-always-opt --expose-gc $@

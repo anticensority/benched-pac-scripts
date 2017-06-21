@@ -1,11 +1,12 @@
+'use strict';
 // 'use strict'; Let PAC-script decide for itself.
 
 const Fs = require('fs');
 const Benchmark = require('benchmark');
 
 const args = process.argv.slice(2);
-if (!args.length) {
-  console.error('ARGS: ./one.pac ./two.pac ... ./last.pac');
+if (args.length !== 1) {
+  console.error('ARGS: ./proxy.pac');
 }
 
 const pacEnv = Fs.readFileSync('./env.js');
@@ -19,32 +20,59 @@ const makePac = function createPac(pacStr) {
 }
 
 const suite = new Benchmark.Suite;
-const opts = {
-  async: false,
-  minSamples: 400,
-};
 
-args.map((path) => [path, Fs.readFileSync(path).toString()]).forEach(([path, content]) => {
+{
+  const pacPath = args.pop();
+  const dontGc = [];
 
-  const pacScript = makePac(content);
+  const pacScript = makePac(
+    Fs.readFileSync(pacPath).toString()
+  );
+  dontGc.push(pacScript);
 
   const host = 'example.com';
   // const host = 'm.mmmmmabc.ru';
   // const host = 'm.ru.leonnavi.com';
   const url = `http://${host}`;
 
-  suite.add(path, function() {
+  const opts = {
+    async: false,
+    minSamples: 400,
+  };
+
+  suite.add(pacPath, function() {
     pacScript(host, url);
   }, opts);
 
-});
+}
 
-suite.on('cycle', function(event) {
+const bytesPerMB = 1 << 20;
+const getMemoryUsage = function getMemoryUsage(old = {}) {
+
+  const current = process.memoryUsage();
+  for(const prop in current) {
+    current[prop] = (current[prop] / bytesPerMB) - (old[prop] || 0);
+  }
+  return current;
+
+};
+
+let startMem;
+
+suite.on('start', function(event) {
+  console.log('START');
+  gc();
+  startMem = getMemoryUsage();
+})
+.on('cycle', function(event) {
   console.log(String(event.target));
+  console.log('CYCLE')
 })
 .on('error', function(event) { console.log(event) })
 .on('complete', function() {
-  console.log('Fastest is ' + this.filter('fastest').map('name'));
+  gc();
+  const mem = getMemoryUsage(startMem);
+  console.log('rss: ' + mem.rss.toFixed(1) + 'M, heapTotal: ' + mem.heapTotal.toFixed(1) + 'M, heapUsed: ' + mem.heapUsed.toFixed(1) + 'M');
 })
 .run();
 
