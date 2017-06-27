@@ -7,6 +7,7 @@ const Benchmark = require('benchmark');
 const args = process.argv.slice(2);
 if (args.length !== 1) {
   console.error('ARGS: ./proxy.pac');
+  process.exit(1);
 }
 
 const pacEnv = Fs.readFileSync('./env.js');
@@ -47,11 +48,11 @@ const suite = new Benchmark.Suite;
 }
 
 const bytesPerMB = 1 << 20;
-const getMemoryUsage = function getMemoryUsage(old = {}) {
+const getMemoryUsage = function getMemoryUsage(oldMem = {}) {
 
   const current = process.memoryUsage();
   for(const prop in current) {
-    current[prop] = (current[prop] / bytesPerMB) - (old[prop] || 0);
+    current[prop] = (current[prop] / bytesPerMB) - (oldMem[prop] || 0);
   }
   return current;
 
@@ -59,10 +60,11 @@ const getMemoryUsage = function getMemoryUsage(old = {}) {
 
 let startMem;
 
+gc();
+startMem = getMemoryUsage();
+
 suite.on('start', function(event) {
   console.log('START');
-  gc();
-  startMem = getMemoryUsage();
 })
 .on('cycle', function(event) {
   console.log(String(event.target));
