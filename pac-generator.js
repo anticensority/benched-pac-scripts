@@ -156,7 +156,7 @@ function generatePacFromString(dumpCsv, ifToCut, typeToProxyString, requiredFunc
 
   }
 
-  var iife = function() {
+  var iife = function(global) {
 
     /*
         Version: 0.2
@@ -215,7 +215,7 @@ function generatePacFromString(dumpCsv, ifToCut, typeToProxyString, requiredFunc
   var pacTemplate = (
     '// From repo: ' + remoteUpdated.toLowerCase() + '\n' +
     '"use strict";\n' +
-    '\nvar FindProxyForURL = (' + iife.toString() + ')()'
+    '\nvar FindProxyForURL = (' + iife.toString() + ')(this || global)'
   )
     .replace('__DATA_EXPR__', dataExpr)
     .replace('__REQ_FUNS__', requiredFunctions.join(';\n'))
