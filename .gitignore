@@ -1,6 +1,7 @@
 # Custom
 dump.csv
 *.swp
+*.pac
 
 # Logs
 logs
