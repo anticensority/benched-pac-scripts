@@ -1,6 +1,6 @@
 # Generate PAC Script
 
-`node pac-generator cut|nocut ./new-gen/global-in.js > ./new-pac/global-in.pac`
+`node pac-generator cut|nocut ./new-gen/global-in.js > ./new-pac/global-in.pac`  
 `node pac-generator.js nocut ./new-gen/bloom.js > bloom.pac`
 
 # Test PAC Script
