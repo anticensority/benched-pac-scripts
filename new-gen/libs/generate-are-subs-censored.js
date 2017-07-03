@@ -8,8 +8,9 @@ module.exports = function generateAreSubsCensored(checkSubExpr) {
       var x = host.lastIndexOf('.');
       do {
         x = host.lastIndexOf('.', x - 1);
+        const sub = host.substring(x + 1);
 
-        if(${checkSubExpr('host.substring(x + 1)')}) {
+        if(${checkSubExpr('sub')}) {
           return true;
         }
       } while(x > -1);

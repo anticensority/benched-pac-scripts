@@ -9,7 +9,21 @@ const generateAreSubsCensored = require('./libs/generate-are-subs-censored');
 
 function generateDataExpr(hosts, ips) {
 
-  const [hostsJson, ipsJson] = [hosts, ips].map((words) => {
+  const p = 0.001;
+  const calc = (n) => {
+
+    const m = Math.round( - n*Math.log(p) / Math.pow(Math.log(2),2) );
+    const k = Math.round( - Math.log(p) / Math.log(2) );
+    return [m,k];
+
+  };
+  const h_calc = calc(hosts.length);
+  const [h_m, h_k] = h_calc;
+  const ip_calc = calc(ips.length);
+  const [ip_m, ip_k] = ip_calc;
+  const calcs = [h_calc, ip_calc];
+
+  const [hostsBucketsJson, ipsBucketsJson] = [hosts, ips].map((words, i) => {
 
     const bloom = words.reduce((bloom, word) =>
       {
@@ -18,7 +32,7 @@ function generateDataExpr(hosts, ips) {
         return bloom;
 
       },
-      new BloomFilter(words, 16)
+      new BloomFilter(...calcs[i])
     );
 
     const arr = [].slice.call(bloom.buckets);
@@ -27,8 +41,8 @@ function generateDataExpr(hosts, ips) {
   });
   return `
     ${bloomfilterAsText};
-    const ipsBloom = new BloomFilter(${ipsJson}, 16);
-    const hostsBloom = new BloomFilter(${hostsJson}, 16);
+    const ipsBloom = new BloomFilter(${ipsBucketsJson}, ${ip_k});
+    const hostsBloom = new BloomFilter(${hostsBucketsJson}, ${h_k});
   `;
 
 }

@@ -126,7 +126,7 @@ function generatePacFromString(dumpCsv, ifToCut, typeToProxyString, requiredFunc
         const ipAddrInt = convert_addr(ipAddrStr) & maskInt;
         ipIntToMaskInt[ipAddrInt] = maskInt;
         ipIntToMaskedStr[ipAddrInt] = (ipAddrInt >>> 0).toString(2).slice(0, cidrInt);
-        //console.error(ip);
+        console.error(ip);
 
       }
 
@@ -159,8 +159,6 @@ function generatePacFromString(dumpCsv, ifToCut, typeToProxyString, requiredFunc
   ips   = Object.keys(ips).sort();
   //hosts = Object.keys(hosts).sort( function(a, b) { return a.split('').reverse() < b.split('').reverse() ? -1 : a !== b ? 1 : 0 } );
   hosts = Object.keys(hosts).sort();
-  console.log(hosts.join('\n'));
-  process.exit();
 
   // Remove subnets of other nets.
   const i2ms = ipIntToMaskedStr;
@@ -267,10 +265,9 @@ function FindProxyForURL(url, host) {
   mutateHostExpr = mutateHostExpr || '';
   requiredFunctions = requiredFunctions || [];
 
-  var dataExpr = (generateDataExpr ? generateDataExpr(hosts, ips) : '') + ';'; /*
+  var dataExpr = (generateDataExpr ? generateDataExpr(hosts, ips) : '')
     + ';\nconst ipIntToMaskInt = ' + JSON.stringify(ipIntToMaskInt)
     + ';\nconst ipsAsUints = ' + JSON.stringify(ipsAsUints) + ';'
-  */
 
   var pacTemplate = (
     '// From repo: ' + remoteUpdated.toLowerCase() + '\n' +
@@ -287,7 +284,7 @@ function FindProxyForURL(url, host) {
 
   return pacTemplate
     .replace('__IS_CENSORED_BY_IP_EXPR__', generateIsCensoredByIpExpr(ips) )
-    .replace('__IS_CENSORED_BY_MASKED_IP_EXPR__', 'false') // stringifyCall(isCensoredByMaskedIp, 'ip'))
+    .replace('__IS_CENSORED_BY_MASKED_IP_EXPR__', stringifyCall(isCensoredByMaskedIp, 'ip'))
     .replace('__IS_CENSORED_BY_HOST_EXPR__', generateIsCensoredByHostExpr(hosts) );
 
 };
