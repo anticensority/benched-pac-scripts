@@ -126,7 +126,6 @@ function generatePacFromString(dumpCsv, ifToCut, typeToProxyString, requiredFunc
         const ipAddrInt = convert_addr(ipAddrStr) & maskInt;
         ipIntToMaskInt[ipAddrInt] = maskInt;
         ipIntToMaskedStr[ipAddrInt] = (ipAddrInt >>> 0).toString(2).slice(0, cidrInt);
-        //console.error(ip);
 
       }
 
@@ -159,8 +158,6 @@ function generatePacFromString(dumpCsv, ifToCut, typeToProxyString, requiredFunc
   ips   = Object.keys(ips).sort();
   //hosts = Object.keys(hosts).sort( function(a, b) { return a.split('').reverse() < b.split('').reverse() ? -1 : a !== b ? 1 : 0 } );
   hosts = Object.keys(hosts).sort();
-  console.log(hosts.join('\n'));
-  process.exit();
 
   // Remove subnets of other nets.
   const i2ms = ipIntToMaskedStr;

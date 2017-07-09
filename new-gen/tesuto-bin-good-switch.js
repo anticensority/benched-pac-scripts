@@ -55,13 +55,12 @@ function generateIsCensored(lenToStr, varName, splitInt = Infinity) {
       function is_${varName}_censored(word){
 
         let s = '';
-        if (word.length <= ${splitInt}) {
 
           switch(word.length) {
             __CASES1__
           }
 
-        } else {
+        if (word.length > ${splitInt}) {
 
           switch(word.length) {
             __CASES2__
