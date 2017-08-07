@@ -13,29 +13,29 @@ const toLenToStr = (words) => {
     return acc;
 
   }, {});
-  const lenToStr = Object.keys(lenToArr).reduce((acc, len) => {
+  const lenToStrMap = Object.keys(lenToArr).reduce((acc, len) => {
 
-    acc[len] = lenToArr[len].sort().join('');
+    acc.set(parseInt(len), lenToArr[len].sort().join(''));
     return acc;
 
-  }, {});
-  return lenToStr;
+  }, new Map());
+  return lenToStrMap;
 
 };
 
 function generateDataExpr(hostsArr, ipsArr) {
 
-  const ipsJson = JSON.stringify( toLenToStr(ipsArr) );
-  const hostsJson = JSON.stringify( toLenToStr(hostsArr) );
+  const ipsJson = JSON.stringify( Array.from(toLenToStr(ipsArr).entries()) );
+  const hostsJson = JSON.stringify( Array.from(toLenToStr(hostsArr).entries()) );
 
   return `
-    const ips = ${ipsJson};
-    const hosts = ${hostsJson};
+    const ips = new Map(${ipsJson});
+    const hosts = new Map(${hostsJson});
   `;
 
 }
 
-const areSubsCensoredStr = generateAreSubsCensored((sub) => `ifFoundByBinaryInString(hosts[${sub}.length] || '', ${sub})`);
+const areSubsCensoredStr = generateAreSubsCensored((sub) => `ifFoundByBinaryInString(hosts.get(${sub}.length) || '', ${sub})`);
 
 function generateUncensorByHostExpr(hosts, indent) {
 
@@ -45,7 +45,7 @@ function generateUncensorByHostExpr(hosts, indent) {
 
 function generateUncensorByIpExpr(ips, indent) {
 
-  return `ifFoundByBinaryInString(ips[ip.length] || '', ip)`;
+  return `ifFoundByBinaryInString(ips.get(ip.length) || '', ip)`;
 
 }
 

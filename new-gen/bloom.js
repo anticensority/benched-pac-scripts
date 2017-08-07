@@ -9,7 +9,7 @@ const generateAreSubsCensored = require('./libs/generate-are-subs-censored');
 
 function generateDataExpr(hosts, ips) {
 
-  const p = 0.001;
+  const p = 0.0005;
   const calc = (n) => {
 
     const m = Math.round( - n*Math.log(p) / Math.pow(Math.log(2),2) );
